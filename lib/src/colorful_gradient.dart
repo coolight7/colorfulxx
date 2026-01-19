@@ -1,0 +1,104 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_shaders/flutter_shaders.dart';
+import 'colorful_options.dart';
+import 'colorful_painter.dart';
+import 'package:util_xx/util_xx.dart';
+
+class ColorfulxxShaderPath {
+  static const String lattice = 'packages/colorfulxx/shaders/lattice.frag';
+}
+
+/// A widget that paints an animated mesh gradient.
+///
+/// This widget creates a visually appealing animated gradient effect by meshing together
+/// four colors. It allows for customization through various parameters such as colors,
+/// animation options, and a manual controller for animation control.
+class ColorfulxxGradient extends StatelessWidget {
+  /// Path to the shader asset used for the gradient animation.
+
+  /// Creates a meshed gradient with provided colors and animates between them.
+  ///
+  /// The [colors] parameter must contain exactly four colors which will be used to
+  /// create the animated gradient. The [options] parameter allows for customization
+  /// of the animation effect. A [seed] can be provided to generate a static gradient
+  /// based on the colors, effectively stopping the animation. The [controller] can be
+  /// used for manual control over the animation. A [child] widget can be placed on top
+  /// of the gradient.
+  ColorfulxxGradient({
+    super.key,
+    required this.colors,
+    required this.options,
+    required this.time,
+    this.controller,
+    this.child,
+    this.seed,
+    this.shaderPath = ColorfulxxShaderPath.lattice,
+  }) {
+    assert(colors.length == 4);
+    // Attempts to precache the shader used for the gradient animation.
+    Future(() async {
+      try {
+        await ShaderBuilder.precacheShader(shaderPath);
+      } catch (e) {
+        debugPrint('[AnimatedMeshGradient] [Exception] Precaching Shader: $e');
+        debugPrintStack(stackTrace: StackTrace.current);
+      }
+    });
+  }
+
+  final String shaderPath;
+
+  final Objxx_c<double> time;
+
+  /// Define 4 colors which will be used to create an animated gradient.
+  late final List<Color> colors;
+
+  /// Here you can define options to play with the animation / effect.
+  final ColorfulxxGradientOptions options;
+
+  /// Sets a seed for the mesh gradient which gives back a static blended gradient based on the given colors.
+  /// This setting stops the animation. Try out different values until you like what you see.
+  final double? seed;
+
+  final AnimationController? controller;
+
+  /// The child widget to display on top of the gradient.
+  final Widget? child;
+
+  Widget _buildPaint(FragmentShader shader, double time, Widget? child) {
+    return CustomPaint(
+      painter: ColorfulxxGradientPainter(
+        shader: shader,
+        time: time,
+        colors: colors,
+        options: options,
+      ),
+      willChange: true,
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double sig = 0;
+    double add(double curr) {
+      final sub = (curr - sig).abs().clamp(0.01, 0.02);
+      sig = curr;
+      return sub;
+    }
+
+    return ShaderBuilder(assetKey: shaderPath, (context, shader, child) {
+      if (null != controller) {
+        return AnimatedBuilder(
+          animation: controller!,
+          builder: (_, child) {
+            time.value += add(controller!.value);
+            return _buildPaint(shader, time.value, child);
+          },
+          child: child,
+        );
+      }
+      return _buildPaint(shader, seed ?? 0, child);
+    }, child: child);
+  }
+}
