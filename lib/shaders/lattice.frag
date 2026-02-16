@@ -10,7 +10,7 @@ uniform vec3 uColor2;
 uniform vec3 uColor3;
 uniform vec3 uColor4;
 
-const float uCrystalCount = 14;
+const float sizeCalc = 50;
 
 out vec4 fragColor;
 
@@ -27,8 +27,10 @@ vec2 random2(vec2 p) {
 }
 
 // 晶格化函数
-vec2 crystallizeUV(vec2 uv, float crystalCount) {
-  vec2 scaledUV = uv * crystalCount;
+vec2 crystallizeUV(vec2 uv) {
+  float calcX = uSize.x / sizeCalc;
+  float calcY = uSize.y / sizeCalc;
+  vec2 scaledUV = vec2(uv.x * calcX, uv.y * calcY);
   vec2 iUV = floor(scaledUV);
   vec2 fUV = fract(scaledUV);
 
@@ -56,7 +58,7 @@ vec2 crystallizeUV(vec2 uv, float crystalCount) {
     }
   }
 
-  return nearestPoint / crystalCount;
+  return vec2(nearestPoint.x / calcX, nearestPoint.y / calcY);
 }
 
 // 颜色混合函数
@@ -84,7 +86,7 @@ void main() {
   vec2 centeredUV = (uv - 0.5) * 1.1 + 0.5;
 
   // 应用晶格化效果
-  vec2 crystalUV = crystallizeUV(centeredUV, uCrystalCount);
+  vec2 crystalUV = crystallizeUV(centeredUV);
 
   // 获取最终颜色
   vec3 finalColor = blendColors(crystalUV);
